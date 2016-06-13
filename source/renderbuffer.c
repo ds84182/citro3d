@@ -36,6 +36,10 @@ static inline GPU_TEXCOLOR colorFmtFromDepthFmt(int fmt)
 	}
 }
 
+#define TexInitVRAMFallback(tex, width, height, format) ( \
+	C3D_TexInitVRAM(tex, width, height, format) || \
+	C3D_TexInit(tex, width, height, format))
+
 bool C3D_RenderBufInit(C3D_RenderBuf* rb, int width, int height, int colorFmt, int depthFmt)
 {
 	memset(rb, 0, sizeof(*rb));
@@ -45,12 +49,12 @@ bool C3D_RenderBufInit(C3D_RenderBuf* rb, int width, int height, int colorFmt, i
 
 	if (colorFmt < 0)
 		return false;
-	if (!C3D_TexInitVRAM(&rb->colorBuf, width, height, colorFmt))
+	if (!TexInitVRAMFallback(&rb->colorBuf, width, height, colorFmt))
 		return false;
 
 	if (depthFmt >= 0)
 	{
-		if (!C3D_TexInitVRAM(&rb->depthBuf, width, height, colorFmtFromDepthFmt(depthFmt)))
+		if (!TexInitVRAMFallback(&rb->depthBuf, width, height, colorFmtFromDepthFmt(depthFmt)))
 		{
 			C3D_TexDelete(&rb->colorBuf);
 			return false;
