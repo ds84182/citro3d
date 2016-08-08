@@ -54,6 +54,7 @@ static bool C3Di_TexInitCommon(C3D_Tex* tex, int width, int height, GPU_TEXCOLOR
 		tex->param |= GPU_TEXTURE_ETC1_PARAM;
 	tex->fmt = format;
 	tex->size = size;
+	tex->noFree = false;
 	return true;
 }
 
@@ -65,6 +66,21 @@ bool C3D_TexInit(C3D_Tex* tex, int width, int height, GPU_TEXCOLOR format)
 bool C3D_TexInitVRAM(C3D_Tex* tex, int width, int height, GPU_TEXCOLOR format)
 {
 	return C3Di_TexInitCommon(tex, width, height, format, vramAlloc);
+}
+
+static void *nullAlloc(size_t size) {
+	// We can't return NULL so we return ALMOST NULL :D
+	return (void*)1;
+}
+
+bool C3D_TexInitPlacement(C3D_Tex* tex, int width, int height, GPU_TEXCOLOR format, void* data)
+{
+	bool init = C3Di_TexInitCommon(tex, width, height, format, nullAlloc);
+	if (init) {
+		tex->data = data;
+		tex->noFree = true;
+	}
+	return init;
 }
 
 void C3D_TexUpload(C3D_Tex* tex, const void* data)
@@ -104,7 +120,7 @@ void C3D_TexFlush(C3D_Tex* tex)
 
 void C3D_TexDelete(C3D_Tex* tex)
 {
-	if (!tex->data) return;
+	if (!tex->data || tex->noFree) return;
 
 	if (addrIsVRAM(tex->data))
 		vramFree(tex->data);
